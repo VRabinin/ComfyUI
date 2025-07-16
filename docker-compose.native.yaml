@@ -1,0 +1,40 @@
+services:
+  comfyui-native:
+    build:
+      context: .
+      dockerfile: Dockerfile.native
+    container_name: comfyui-native
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    environment:
+      - PYTORCH_ENABLE_MPS_FALLBACK=1
+      - PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+    volumes:
+      # Model directories - mount to persist models between container restarts
+      - ./models:/app/models
+      # Input and output directories
+      - ./input:/app/input
+      - ./output:/app/output
+      # Custom nodes directory
+      - ./custom_nodes:/app/custom_nodes
+      # User directory for configurations
+      - ./user:/app/user
+      # Temp directory (optional, can be omitted to use container temp)
+      - ./temp:/app/temp
+      # Optional: Mount extra model paths configuration
+      - ./extra_model_paths.yaml:/app/extra_model_paths.yaml:ro
+    # Share host network for better MPS performance (optional)
+    # network_mode: host
+    # Resource limits for M2 Max
+    deploy:
+      resources:
+        limits:
+          memory: 32G  # M2 Max unified memory
+          cpus: '12'   # M2 Max has 12 CPU cores
+    networks:
+      - comfyui-network
+
+networks:
+  comfyui-network:
+    driver: bridge

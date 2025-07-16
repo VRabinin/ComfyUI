@@ -1,0 +1,55 @@
+name: ComfyUI
+
+services:
+  comfyui:
+    build: .
+    container_name: comfyui
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      # Model directories - mount to persist models between container restarts
+      - ./models:/app/models
+      # Input and output directories
+      - ./input:/app/input
+      - ./output:/app/output
+      # Custom nodes directory
+      - ./custom_nodes:/app/custom_nodes
+      # User directory for configurations
+      - ./user:/app/user
+      # Temp directory (optional, can be omitted to use container temp)
+      - ./temp:/app/temp
+      # Optional: Mount extra model paths configuration
+      - ./extra_model_paths.yaml:/app/extra_model_paths.yaml:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - comfyui-network
+
+  # Optional: Add a reverse proxy for HTTPS and domain access
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: comfyui-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - comfyui
+  #   networks:
+  #     - comfyui-network
+
+networks:
+  comfyui-network:
+    driver: bridge
