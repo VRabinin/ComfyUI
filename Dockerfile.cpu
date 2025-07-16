@@ -1,0 +1,68 @@
+# CPU-only version without NVIDIA CUDA support
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV HF_HUB_DISABLE_TELEMETRY=1
+ENV DO_NOT_TRACK=1
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libfontconfig1 \
+    libxrender1 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Copy requirements first to leverage Docker layer caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install CPU-only PyTorch
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Copy the application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/models/checkpoints \
+    /app/models/clip \
+    /app/models/vae \
+    /app/models/loras \
+    /app/models/controlnet \
+    /app/models/embeddings \
+    /app/models/diffusion_models \
+    /app/input \
+    /app/output \
+    /app/temp \
+    /app/user \
+    /app/custom_nodes
+
+# Set permissions
+RUN chmod -R 755 /app
+
+# Expose the port ComfyUI runs on
+EXPOSE 8188
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8188/ || exit 1
+
+# Default command with CPU flag
+CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--cpu"]
