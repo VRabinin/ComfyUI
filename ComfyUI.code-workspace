@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../gguf_to_safetensors"
+		}
+	],
+	"settings": {}
+}
